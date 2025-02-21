@@ -1,0 +1,44 @@
+#!/bin/bash
+
+USAGE="$0 <file"
+declare -a FIELDS
+declare -a VALUES
+
+read_csv_fields() {
+  local IFS=','
+  read -t 0.1 -a FIELDS || return 1
+}
+
+read_row() {
+  local IFS=','
+  read -t 0.1 -a VALUES || return 1
+}
+
+print_row() {
+  local IFS=','
+  local -a row
+  for ((i=0; i < ${#FIELDS[@]}; i++)); do
+    row[i]=$(printf '"%s": "%s"' "${FIELDS[i]}" "${VALUES[i]}")
+  done
+
+  printf '{'
+  printf '%s' "${row[*]}"
+  printf '}'
+}
+
+if read_csv_fields; then
+  printf '['
+
+  read_row
+  print_row
+
+  while read_row; do
+    printf ','
+    print_row
+  done
+  printf ']\n'
+else
+  echo "Could not read stdin" >&2
+  echo "Usage: ${USAGE}" >&2
+  exit 1
+fi

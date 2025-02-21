@@ -1,8 +1,8 @@
 # csv-to-json
 
-Simple bash script for converting CSV to .
+Simple bash script for converting CSV to JSON.
 
-The script read CSV from stdin and outputs JSON.
+The script read CSV from stdin and prints JSON to stdout.
 
 ## Example usage
 

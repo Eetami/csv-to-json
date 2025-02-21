@@ -18,12 +18,10 @@ print_row() {
   local IFS=','
   local -a row
   for ((i=0; i < ${#FIELDS[@]}; i++)); do
-    row[i]=$(printf '"%s": "%s"' "${FIELDS[i]}" "${VALUES[i]}")
+    row[i]=$(printf '"%s":"%s"' "${FIELDS[i]}" "${VALUES[i]}")
   done
 
-  printf '{'
-  printf '%s' "${row[*]}"
-  printf '}'
+  printf '{%s}' "${row[*]}"
 }
 
 if read_csv_fields; then

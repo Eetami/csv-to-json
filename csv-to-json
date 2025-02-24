@@ -71,10 +71,11 @@ if read_csv_fields FIELDS; then
 
   read_csv_fields VALUES
   print_row
-
+  VALUES=()
   while read_csv_fields VALUES; do
     printf ','
     print_row
+    VALUES=()
   done
   printf ']\n'
 else

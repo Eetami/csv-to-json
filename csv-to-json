@@ -4,14 +4,56 @@ USAGE="$0 <file"
 declare -a FIELDS
 declare -a VALUES
 
-read_csv_fields() {
-  local IFS=','
-  read -t 0.1 -a FIELDS || return 1
+sanitize_field() {
+  local field="${1#\"}"
+  field="${field%\"}"
+  local sanitized=""
+  for ((i=0;i < ${#field}; i++)); do
+    local char="${field:i:1}"
+    if [ "$char" = '"' ]; then
+      sanitized="${sanitized}\\\""
+      ((i++))
+      continue
+    fi
+    sanitized="${sanitized}${char}"
+  done
+  echo "${sanitized}"
 }
 
-read_row() {
-  local IFS=','
-  read -t 0.1 -a VALUES || return 1
+read_csv_fields() {
+  local -n array_name="$1"
+  local -i idx=0
+  local field=""
+  local quote_enclosed=false
+  read -rt 0.1 HEADER_LINE || return 1
+  while ((idx < ${#HEADER_LINE})); do
+    local char="${HEADER_LINE:idx:1}"
+    if [ "$char" = '"' ]; then
+      if $quote_enclosed; then
+        quote_enclosed=false
+      else
+        quote_enclosed=true
+      fi
+    fi
+    if ! $quote_enclosed && [ "$char" = ',' ]; then
+      array_name+=("$(sanitize_field "${field}")")
+      field=""
+      ((idx++))
+      continue
+    fi
+    field="${field}${char}"
+    ((idx++))
+    if (( idx == ${#HEADER_LINE} )); then
+      if $quote_enclosed; then
+        read -r HEADER_LINE || return 1
+        field="${field}\n"
+        idx=0
+      else
+        array_name+=("$(sanitize_field "${field}")")
+        return
+      fi
+    fi
+  done
 }
 
 print_row() {
@@ -24,13 +66,13 @@ print_row() {
   printf '{%s}' "${row[*]}"
 }
 
-if read_csv_fields; then
+if read_csv_fields FIELDS; then
   printf '['
 
-  read_row
+  read_csv_fields VALUES
   print_row
 
-  while read_row; do
+  while read_csv_fields VALUES; do
     printf ','
     print_row
   done

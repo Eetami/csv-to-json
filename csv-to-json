@@ -15,6 +15,10 @@ sanitize_field() {
       ((i++))
       continue
     fi
+    if [ "$char" = $'\r' ]; then
+      ((i++))
+      continue
+    fi
     sanitized="${sanitized}${char}"
   done
   echo "${sanitized}"

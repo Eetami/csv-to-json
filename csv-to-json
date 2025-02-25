@@ -4,6 +4,34 @@ USAGE="$0 <file"
 declare -a FIELDS
 declare -a VALUES
 
+replace_control_char() {
+  local char="$1"
+  case "$char" in
+    $'\a')
+      char='\a'
+      ;;
+    $'\b')
+      char='\b'
+      ;;
+    $'\f')
+      char='\f'
+      ;;
+    $'\n')
+      char='\n'
+      ;;
+    $'\r')
+      char=''
+      ;;
+    $'\t')
+      char='\t'
+      ;;
+    $'\v')
+      char='\v'
+      ;;
+  esac
+  printf '%s' "$char"
+}
+
 sanitize_field() {
   local field="${1#\"}"
   field="${field%\"}"
@@ -15,10 +43,7 @@ sanitize_field() {
       ((i++))
       continue
     fi
-    if [ "$char" = $'\r' ]; then
-      ((i++))
-      continue
-    fi
+    char=$(replace_control_char "$char")
     sanitized="${sanitized}${char}"
   done
   echo "${sanitized}"
@@ -29,9 +54,10 @@ read_csv_fields() {
   local -i idx=0
   local field=""
   local quote_enclosed=false
-  read -rt 0.1 HEADER_LINE || return 1
-  while ((idx < ${#HEADER_LINE})); do
-    local char="${HEADER_LINE:idx:1}"
+  read -rt 0.1 line || return 1
+  line=${line#$'\xEF'$'\xBB'$'\xBF'}
+  while ((idx < ${#line})); do
+    local char="${line:idx:1}"
     if [ "$char" = '"' ]; then
       if $quote_enclosed; then
         quote_enclosed=false
@@ -47,10 +73,11 @@ read_csv_fields() {
     fi
     field="${field}${char}"
     ((idx++))
-    if (( idx == ${#HEADER_LINE} )); then
+    if (( idx == ${#line} )); then
       if $quote_enclosed; then
-        read -r HEADER_LINE || return 1
-        field="${field}\n"
+        read -r line || return 1
+        field="${field}
+"
         idx=0
       else
         array_name+=("$(sanitize_field "${field}")")
